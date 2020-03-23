@@ -2,19 +2,25 @@
 
 import sys
 
+LDI = 0b10000010
+PRN = 0b01000111
+HLT = 0b00000001
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
-
+        self.reg = [0] * 8
+        self.ram = [0] * 256
+        self.pc = 0
     def load(self):
         """Load a program into memory."""
 
         address = 0
 
         # For now, we've just hardcoded a program:
+        
 
         program = [
             # From print8.ls8
@@ -25,6 +31,7 @@ class CPU:
             0b00000000,
             0b00000001, # HLT
         ]
+        
 
         for instruction in program:
             self.ram[address] = instruction
@@ -59,7 +66,31 @@ class CPU:
             print(" %02X" % self.reg[i], end='')
 
         print()
+    def ram_read(self, mar):
+        return self.ram[mar]
+    
+    def ram_write(self, mar, mdr):
+        self.ram[mar] = mdr
 
     def run(self):
         """Run the CPU."""
-        pass
+
+        running = True
+
+        while running:
+            
+            instruction = self.ram[self.pc]
+            operand_a = self.ram_read(self.pc + 1) 
+            operand_b = self.ram_read(self.pc + 2)
+            if instruction == PRN:
+                print(self.reg[operand_a])
+                self.pc += 2
+            elif instruction == LDI:
+                self.reg[operand_a] = operand_b 
+                self.pc += 3
+            elif instruction == HLT:
+                running = False    
+            else:
+                print('did not understand the instruction')
+                running = False
+
