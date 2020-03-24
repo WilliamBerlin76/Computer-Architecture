@@ -12,6 +12,13 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
+        # Create branchtable
+        self.branchtable = {}
+        self.branchtable[LDI] = self.handle_ldi
+        self.branchtable[PRN] = self.handle_prn
+        self.branchtable[HLT] = self.handle_hlt
+        self.branchtable[MUL] = self.handle_mul
+
         self.reg = [0] * 8
         self.ram = [0] * 256
         self.pc = 0
@@ -72,6 +79,21 @@ class CPU:
     def ram_write(self, mar, mdr):
         self.ram[mar] = mdr
 
+    def handle_prn(self, *argv):
+        print(self.reg[argv[0]])
+        self.pc += 2
+
+    def handle_ldi(self, *argv):
+        self.reg[argv[0]] = argv[1]
+        self.pc += 3
+
+    def handle_hlt(self, *argv):
+        sys.exit(1)
+
+    def handle_mul(self, *argv):
+        self.alu('MUL', argv[0], argv[1])
+        self.pc += 3
+        
     def run(self):
         """Run the CPU."""
         
@@ -82,19 +104,10 @@ class CPU:
             instruction = self.ram[self.pc]
             operand_a = self.ram_read(self.pc + 1) 
             operand_b = self.ram_read(self.pc + 2)
-            if instruction == PRN:
-                print(self.reg[operand_a])
-                self.pc += 2
-            elif instruction == LDI:
-                self.reg[operand_a] = operand_b 
-                self.pc += 3
-            elif instruction == HLT:
-                running = False   
-            elif instruction == MUL:
-                self.alu('MUL', operand_a, operand_b)
-                self.pc += 3 
+            
+            if instruction in self.branchtable:
+                self.branchtable[instruction](operand_a, operand_b)
             else:
                 print('did not understand the instruction')
-                running = False
                 sys.exit(1)
 
