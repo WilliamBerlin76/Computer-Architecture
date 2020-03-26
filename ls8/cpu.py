@@ -6,22 +6,30 @@ LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
 
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        # Create branchtable
+        ###### Branchtable ########
         self.branchtable = {}
         self.branchtable[LDI] = self.handle_ldi
         self.branchtable[PRN] = self.handle_prn
         self.branchtable[HLT] = self.handle_hlt
         self.branchtable[MUL] = self.handle_mul
+        self.branchtable[PUSH] = self.handle_push
+        self.branchtable[POP] = self.handle_pop
+        ###########################
 
         self.reg = [0] * 8
         self.ram = [0] * 256
         self.pc = 0
+        self.SP = 7 # R7 is reserved as the stack pointer
+        self.reg[self.SP] = 0xF4 # Set the pointer to the correct index in RAM
+        
     def load(self, filename):
         """Load a program into memory."""
 
@@ -93,7 +101,18 @@ class CPU:
     def handle_mul(self, *argv):
         self.alu('MUL', argv[0], argv[1])
         self.pc += 3
+    
+    def handle_push(self, *argv):
+        self.reg[self.SP] -= 1
+        self.ram[self.reg[self.SP]] = self.reg[argv[0]]
+        self.pc += 2
         
+    def handle_pop(self, *argv):
+        val = self.ram[self.reg[self.SP]]
+        self.reg[argv[0]] = val
+        self.reg[self.SP] += 1
+        self.pc += 2
+
     def run(self):
         """Run the CPU."""
         
@@ -104,7 +123,7 @@ class CPU:
             instruction = self.ram[self.pc]
             operand_a = self.ram_read(self.pc + 1) 
             operand_b = self.ram_read(self.pc + 2)
-            
+
             if instruction in self.branchtable:
                 self.branchtable[instruction](operand_a, operand_b)
             else:
