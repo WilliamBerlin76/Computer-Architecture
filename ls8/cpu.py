@@ -6,8 +6,11 @@ LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
+ADD = 0b10100000
 PUSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
 
 class CPU:
     """Main CPU class."""
@@ -20,8 +23,11 @@ class CPU:
         self.branchtable[PRN] = self.handle_prn
         self.branchtable[HLT] = self.handle_hlt
         self.branchtable[MUL] = self.handle_mul
+        self.branchtable[ADD] = self.handle_add
         self.branchtable[PUSH] = self.handle_push
         self.branchtable[POP] = self.handle_pop
+        self.branchtable[CALL] = self.handle_call
+        self.branchtable[RET] = self.handle_ret
         ###########################
 
         self.reg = [0] * 8
@@ -29,7 +35,7 @@ class CPU:
         self.pc = 0
         self.SP = 7 # R7 is reserved as the stack pointer
         self.reg[self.SP] = 0xF4 # Set the pointer to the correct index in RAM
-        
+
     def load(self, filename):
         """Load a program into memory."""
 
@@ -46,7 +52,7 @@ class CPU:
                     val = int(num, 2)
                     self.ram[address] = val
                     address += 1
-        # # For now, we've just hardcoded a program:
+
         except FileNotFoundError:
             print("File not found")
             sys.exit(2)
@@ -96,10 +102,15 @@ class CPU:
         self.pc += 3
 
     def handle_hlt(self, *argv):
-        sys.exit(1)
+        self.running = False
+        self.pc += 1
 
     def handle_mul(self, *argv):
         self.alu('MUL', argv[0], argv[1])
+        self.pc += 3
+    
+    def handle_add(self, *argv):
+        self.alu('ADD', argv[0], argv[1])
         self.pc += 3
     
     def handle_push(self, *argv):
@@ -112,13 +123,24 @@ class CPU:
         self.reg[argv[0]] = val
         self.reg[self.SP] += 1
         self.pc += 2
+    
+    def handle_call(self, *argv):
+        self.reg[self.SP] -= 1
+        self.ram[self.reg[self.SP]] = self.pc + 2
+        
+        reg = self.ram[self.pc + 1]
+        self.pc = self.reg[reg]
+
+    def handle_ret(self, *argv):
+        self.pc = self.ram[self.reg[self.SP]]
+        self.reg[self.SP] += 1
 
     def run(self):
         """Run the CPU."""
         
-        running = True
+        self.running = True
 
-        while running:
+        while self.running:
             
             instruction = self.ram[self.pc]
             operand_a = self.ram_read(self.pc + 1) 
